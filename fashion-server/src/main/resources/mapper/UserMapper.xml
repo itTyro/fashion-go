@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.lzl.mapper.UserMapper">
+
+    <!--查询每天新增的用户数-->
+    <select id="userCountByDate" resultType="com.lzl.dto.UserReportDTO">
+        select
+            date_format(create_time, '%Y-%m-%d') createUserTime,
+            count(*) userCount
+        from user
+        where create_time between #{beginTime} and #{endTime}
+        group by date_format(create_time, '%Y-%m-%d')
+
+    </select>
+</mapper>

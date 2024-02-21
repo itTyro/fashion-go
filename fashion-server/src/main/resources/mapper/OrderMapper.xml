@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.lzl.mapper.OrderMapper">
+    <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="id">
+        insert into orders
+        (number, status, user_id, address_book_id, order_time, checkout_time, pay_method, pay_status, amount, remark,
+         phone, address, consignee, estimated_delivery_time, delivery_status, pack_amount, tableware_number,
+         tableware_status)
+        values (#{number}, #{status}, #{userId}, #{addressBookId}, #{orderTime}, #{checkoutTime}, #{payMethod},
+                #{payStatus}, #{amount}, #{remark}, #{phone}, #{address}, #{consignee},
+                #{estimatedDeliveryTime}, #{deliveryStatus}, #{packAmount}, #{tablewareNumber}, #{tablewareStatus})
+    </insert>
+
+
+    <update id="update" parameterType="com.lzl.entity.Orders">
+        update orders
+        <set>
+            <if test="cancelReason != null and cancelReason!='' ">
+                cancel_reason=#{cancelReason},
+            </if>
+            <if test="rejectionReason != null and rejectionReason!='' ">
+                rejection_reason=#{rejectionReason},
+            </if>
+            <if test="cancelTime != null">
+                cancel_time=#{cancelTime},
+            </if>
+            <if test="payStatus != null">
+                pay_status=#{payStatus},
+            </if>
+            <if test="payMethod != null">
+                pay_method=#{payMethod},
+            </if>
+            <if test="checkoutTime != null">
+                checkout_time=#{checkoutTime},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="deliveryTime != null">
+                delivery_time = #{deliveryTime}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--动态条件查询订单-->
+    <select id="conditionSearch" resultType="com.lzl.entity.Orders">
+        select *
+        from orders
+        <where>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="number != null and number != ''">
+                and number like concat('%', #{number}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                and phone like concat('%', #{phone}, '%')
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="beginTime != null and endTime != null">
+                and order_time between #{beginTime} and #{endTime}
+            </if>
+        </where>
+        order by order_time desc
+
+    </select>
+
+    <!--获取指定日期对应的营业额-->
+    <select id="turnoverStatistics" resultType="com.lzl.dto.TurnoverReportDTO">
+        select
+            date_format(order_time, '%Y-%m-%d') orderDate,
+            sum(amount) orderMoney
+        from orders
+        <where>
+            <if test="status != null">
+                status = #{status}
+            </if>
+            <if test="beginTime != null and endTime != null">
+                and order_time between #{beginTime} and #{endTime}
+            </if>
+        </where>
+        group by date_format(order_time, '%Y-%m-%d')
+        order by date_format(order_time, '%Y-%m-%d')
+        ;
+    </select>
+
+    <!--获取订单数和有效订单数-->
+    <select id="countOrderByDateAndStatus" resultType="com.lzl.dto.OrderReportDTO">
+        select
+            date_format(order_time, '%Y-%m-%d') orderDate,
+            count(*) orderCount
+        from orders
+        <where>
+            <if test="beginTime != null and endTime != null">
+                order_time between #{beginTime} and #{endTime}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        group by date_format(order_time, '%Y-%m-%d')
+        order by date_format(order_time, '%Y-%m-%d')
+        ;
+    </select>
+
+    <!--获取销量top10-->
+    <select id="getTop10" resultType="com.lzl.dto.GoodsSalesDTO">
+        select od.name dishName, count(*) count
+        from orders o , order_detail od
+        <where>
+            o.id = od.order_id
+            <if test="beginTime != null and endTime != null">
+                and o.order_time between #{beginTime} and #{endTime}
+            </if>
+            <if test="status != null">
+                and o.status = #{status}
+            </if>
+        </where>
+        group by dishName
+        order by count desc
+        limit 10
+
+        ;
+    </select>
+    <!--查询当天各状态订单数-->
+    <select id="count" resultType="java.lang.Integer">
+        select count(*)
+        from orders
+        <where>
+            <if test="beginTime != null ">
+                order_time > #{beginTime}
+            </if>
+            <if test="endTime != null">
+                and order_time &lt; #{endTime}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+
+    </select>
+
+</mapper>
+
